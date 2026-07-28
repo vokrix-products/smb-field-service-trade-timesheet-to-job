@@ -1,72 +1,60 @@
-import os
-import time
+import os, time, json
 import requests
-from processor import process
+from processor import process_file
 
 SUPABASE_URL = os.environ["SUPABASE_URL"]
 SUPABASE_SERVICE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
 PRODUCT_ID = os.environ["PRODUCT_ID"]
-API_KEY = os.environ["ANTHROPIC_API_KEY"]
-
-HEADERS = {
-    "apikey": SUPABASE_SERVICE_KEY,
-    "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
-    "Content-Type": "application/json",
-}
+HEADERS = {"apikey": SUPABASE_SERVICE_KEY, "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}", "Content-Type": "application/json"}
 
 def poll_jobs():
-    url = f"{SUPABASE_URL}/rest/v1/jobs"
-    params = {
-        "select": "*",
-        "status": "eq.pending",
-        "job_type": "eq.process_upload",
-        "product_id": f"eq.{PRODUCT_ID}",
-        "order": "created_at.asc",
-        "limit": "1",
-    }
-    resp = requests.get(url, headers=HEADERS, params=params)
-    if resp.status_code != 200 or not resp.json():
-        return None
-    return resp.json()[0]
+    r = requests.get(f"{SUPABASE_URL}/rest/v1/jobs", headers=HEADERS,
+        params={"select": "*", "status": "eq.pending", "job_type": "eq.process_upload", "product_id": f"eq.{PRODUCT_ID}"})
+    r.raise_for_status()
+    return r.json()
 
-def download_file(bucket: str, path: str) -> bytes:
-    url = f"{SUPABASE_URL}/storage/v1/object/{bucket}/{path}"
-    resp = requests.get(url, headers=HEADERS)
-    resp.raise_for_status()
-    return resp.content
+def download_file(path):
+    r = requests.get(f"{SUPABASE_URL}/storage/v1/object/uploads/{path}", headers={"apikey": SUPABASE_SERVICE_KEY})
+    r.raise_for_status()
+    return r.content
 
-def upload_result(bucket: str, path: str, data: bytes):
-    url = f"{SUPABASE_URL}/storage/v1/object/{bucket}/{path}"
-    resp = requests.post(url, headers=HEADERS, data=data)
-    resp.raise_for_status()
+def write_records(rows, customer_id, source_path):
+    for row in rows:
+        requests.post(f"{SUPABASE_URL}/rest/v1/records", headers=HEADERS, json={
+            "product_id": PRODUCT_ID, "customer_id": customer_id,
+            "title": row.get("title", "Unknown"), "status": row.get("status", "pending"),
+            "details": row.get("details", {}), "source_file_path": source_path,
+            "due_date": row.get("due_date")
+        }).raise_for_status()
 
-def update_job(job_id: str, status: str, output_file_path=None, result_summary=None):
-    url = f"{SUPABASE_URL}/rest/v1/jobs?id=eq.{job_id}"
-    payload = {
-        "status": status,
-        "completed_at": "now()",
-    }
-    if output_file_path:
-        payload["output_file_path"] = output_file_path
-    if result_summary:
-        payload["result_summary"] = result_summary
-    resp = requests.patch(url, headers=HEADERS, json=payload)
-    resp.raise_for_status()
+def update_job(job_id, status, result_summary=None):
+    payload = {"status": status}
+    if result_summary: payload["result_summary"] = result_summary
+    requests.patch(f"{SUPABASE_URL}/rest/v1/jobs?id=eq.{job_id}", headers=HEADERS, json=payload).raise_for_status()
 
 def main():
+    print("Poller started", flush=True)
     while True:
-        job = poll_jobs()
-        if job:
-            job_id = job["id"]
-            try:
-                file_content = download_file("uploads", job["source_file_path"])
-                output = process(file_content, job)
-                result_path = f"results/{job_id}/output.json"
-                upload_result("results", result_path, output.encode())
-                update_job(job_id, "completed", output_file_path=result_path, result_summary="Processed")
-            except Exception as e:
-                update_job(job_id, "failed", result_summary=str(e))
-        time.sleep(60)
+        try:
+            for job in poll_jobs():
+                job_id, customer_id = job["id"], job.get("customer_id")
+                paths = job.get("input_file_paths") or ([job["input_file_path"]] if job.get("input_file_path") else [])
+                if not paths:
+                    update_job(job_id, "failed", "No input files")
+                    continue
+                update_job(job_id, "processing")
+                try:
+                    total = 0
+                    for path in paths:
+                        rows = process_file(download_file(path))
+                        write_records(rows, customer_id, path)
+                        total += len(rows)
+                    update_job(job_id, "completed", json.dumps({"total": total}))
+                except Exception as e:
+                    update_job(job_id, "failed", str(e)[:200])
+        except Exception as e:
+            print(f"Poll error: {e}", flush=True)
+        time.sleep(30)
 
 if __name__ == "__main__":
     main()

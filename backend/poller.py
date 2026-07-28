@@ -59,10 +59,14 @@ def main():
         if job:
             job_id = job["id"]
             try:
+                # Download input file
                 file_content = download_file("uploads", job["source_file_path"])
-                output = process(file_content, job)
+                # Process with AI
+                output = process(file_content, job)  # processor must accept bytes and job dict
+                # Upload result
                 result_path = f"results/{job_id}/output.json"
                 upload_result("results", result_path, output.encode())
+                # Update job as completed
                 update_job(job_id, "completed", output_file_path=result_path, result_summary="Processed")
             except Exception as e:
                 update_job(job_id, "failed", result_summary=str(e))

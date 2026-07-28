@@ -8,3 +8,4 @@ fix: trigger redeploy for Stripe env
 ## QA Fix Applied
 - VITE_STRIPE_PRICE_ID set on Vercel
 - Outreach activation record inserted
+fix: VITE_STRIPE_PRICE_ID and outreach record

@@ -45,3 +45,4 @@ Variance threshold: **10%** (0.10). Statuses:
 
 Dashboard: https://smb-field-service-trade-timesheet-to-job.vokrix.co, Vercel: smb-field-service-trade-timesheet-to-job, Railway: d02cca25-be59-4fad-a0ef-97aa2093cccd
 Railway: smb-field-service-trade-timesheet-to-job
+Cloudflare: smb-field-service-trade-timesheet-to-job.vokrix.co

@@ -9,3 +9,4 @@ fix: trigger redeploy for Stripe env
 - VITE_STRIPE_PRICE_ID set on Vercel
 - Outreach activation record inserted
 fix: VITE_STRIPE_PRICE_ID and outreach record
+# SMB Field Service Trade Timesheet-to-Job Cost Variance Auto-Processor

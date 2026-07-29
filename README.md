@@ -28,3 +28,4 @@ VITE_STRIPE_PRICE_ID fix applied — 2026-07-29T05:12:38Z
 
 
 ## Fix: Stripe env var configured and redeployed
+

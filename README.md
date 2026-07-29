@@ -34,3 +34,4 @@ Fix applied: outreach record, VITE_STRIPE_PRICE_ID, and redeploy – Wed Jul 29 
 
 <!-- QA fix applied Wed Jul 29 08:36:46 UTC 2026 -->
 
+Fix deploy Wed Jul 29 10:02:50 UTC 2026

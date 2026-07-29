@@ -14,3 +14,4 @@ Fix applied Tue Jul 28 22:01:27 UTC 2026
 - QA fix applied: outreach target verified, Stripe price env correct
 -e 
 ✅ Fix applied on Tue Jul 28 23:19:07 UTC 2026: outreach activation record + VITE_STRIPE_PRICE_ID set + redeploy triggered.
+Fix applied 2026-07-29T00:05:34Z

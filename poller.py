@@ -27,10 +27,7 @@ def write_records(rows, customer_id, source_path):
             "due_date": row.get("due_date")
         })
         if not _r.ok:
-            err = f"{_r.status_code} {_r.text[:300]}"
-            print(f"records write failed: {err}", flush=True)
-            update_job(job_id, "failed", err)
-            return
+            raise Exception(f"records 400: {_r.text[:300]}")
         _r.raise_for_status()
 
 def update_job(job_id, status, result_summary=None):

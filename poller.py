@@ -20,12 +20,15 @@ def download_file(path):
 
 def write_records(rows, customer_id, source_path):
     for row in rows:
-        requests.post(f"{SUPABASE_URL}/rest/v1/records", headers=HEADERS, json={
+        _r = requests.post(f"{SUPABASE_URL}/rest/v1/records", headers=HEADERS, json={
             "product_id": PRODUCT_ID, "customer_id": customer_id,
             "title": row.get("title", "Unknown"), "status": row.get("status", "pending"),
             "details": row.get("details", {}), "source_file_path": source_path,
             "due_date": row.get("due_date")
-        }).raise_for_status()
+        })
+        if not _r.ok:
+            print(f"records write failed: {_r.status_code} {_r.text[:500]}", flush=True)
+        _r.raise_for_status()
 
 def update_job(job_id, status, result_summary=None):
     payload = {"status": status}

@@ -7,8 +7,11 @@ export default async function handler(req, res) {
       'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`,
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ model: 'deepseek-v4-flash', max_tokens: 500, messages: system ? [{ role: 'system', content: system }, ...messages] : messages })
+    body: JSON.stringify({ model: 'deepseek-chat', max_tokens: 1000, messages: system ? [{ role: 'system', content: system }, ...messages] : messages })
   })
   const data = await r.json()
+  if (data.choices?.[0]?.message && !data.choices[0].message.content) {
+    data.choices[0].message.content = data.choices[0].message.reasoning_content || 'Something went wrong. Please try again.'
+  }
   res.status(r.status).json(data)
 }
